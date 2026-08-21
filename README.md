@@ -1,73 +1,111 @@
-| :warning: Important |
-|:---|
+# HelloID-Conn-SA-Full-Exchange-On-Premises-SharedMailbox-Manage-SendAs-Permissions
+
+| :warning: Important                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Best Practice:** Use **HelloID Products** for requesting and managing permissions (group memberships, mailbox access, application roles). Products provide governance, approval workflows, admin visibility, and full lifecycle management.<br>Use delegated forms for one-time operational actions (creating resources like shared mailboxes, password resets, attribute updates) only.<br><br>**[Read more: Products vs. Delegated Forms](https://docs.helloid.com/en/service-automation/products-vs--delegated-forms.html)** |
 
-
-| :information_source: Information |
-|:---|
+| :information_source: Information                                                                                                                                                                                                                                                                                                                                                          |
+| :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | This repository contains the connector and configuration code only. The implementer is responsible for acquiring the connection details such as username, password, certificate, etc. You might even need to sign a contract or agreement with the supplier before implementing this connector. Please contact the client's application manager to coordinate the connector requirements. |
 
-<!-- Description -->
 ## Description
-This HelloID Service Automation Delegated Form provides Exchange On-Premise shared mailbox functionality. The following options are available:
- 1. Search shared mailbox to manage
- 2. Select the shared mailbox to manage
- 3. Manage members of the shared mailbox who have send-as rights (Add/Remove)
- 4. Confirm the changes
 
-## Versioning
-| Version | Description | Date |
-| - | - | - |
-| 1.0.2   | Added version number and updated code for SA-agent and auditlogging | 2022/08/24  |
-| 1.0.1   | Added version number and updated all-in-one script | 2021/11/16  |
-| 1.0.0   | Initial release | 2021/04/29  |
+_HelloID-Conn-SA-Full-Exchange-On-Premises-SharedMailbox-Manage-SendAs-Permissions_ is a template designed for use with HelloID Service Automation (SA) Delegated Forms. It can be imported into HelloID and customized according to your requirements.
 
-<!-- TABLE OF CONTENTS -->
-## Table of Contents
-* [Description](#description)
-* [All-in-one PowerShell setup script](#all-in-one-powershell-setup-script)
-  * [Getting started](#getting-started)
-* [Post-setup configuration](#post-setup-configuration)
-* [Manual resources](#manual-resources)
+This HelloID Service Automation Delegated Form provides Exchange On-Premises shared mailbox Send As permissions management functionality. The following workflow is supported:
 
+1.  Search and select the shared mailbox to manage
+2.  View current users with Send As permissions on the selected mailbox
+3.  Select users to add or remove from Send As permissions
+4.  Grant or revoke Send As permissions on the shared mailbox
+5.  Confirm the changes and receive audit logging
 
-## All-in-one PowerShell setup script
-The PowerShell script "createform.ps1" contains a complete PowerShell script using the HelloID API to create the complete Form including user defined variables, tasks and data sources.
+## Getting started
 
- _Please note that this script asumes none of the required resources do exists within HelloID. The script does not contain versioning or source control_
+### Requirements
 
+- **Exchange On-Premises Environment**:<br>
+  Access to an Exchange On-Premises server with Remote PowerShell enabled. The connector uses Exchange Management Shell commands via PowerShell remoting.
+- **Service Account**:<br>
+  A service account with sufficient permissions to manage mailbox permissions in Exchange. The account must have rights to use `Get-Mailbox`, `Add-ADPermission`, `Remove-ADPermission`, and `Get-ADPermission` cmdlets.
+- **Network Connectivity**:<br>
+  The HelloID agent or runner must have network access to the Exchange On-Premises server on the configured PowerShell endpoint (typically HTTP or HTTPS).
 
-### Getting started
-Please follow the documentation steps on [HelloID Docs](https://docs.helloid.com/hc/en-us/articles/360017556559-Service-automation-GitHub-resources) in order to setup and run the All-in one Powershell Script in your own environment.
+### Connection settings
 
- 
-## Post-setup configuration
-After the all-in-one PowerShell script has run and created all the required resources. The following items need to be configured according to your own environment
- 1. Update the following [user defined variables](https://docs.helloid.com/hc/en-us/articles/360014169933-How-to-Create-and-Manage-User-Defined-Variables)
-<table>
-  <tr><td><strong>Variable name</strong></td><td><strong>Example value</strong></td><td><strong>Description</strong></td></tr>
-  <tr><td>ExchangeConnectionUri</td><td>http://exchangeserver/powershell</td><td>Exchangeserver where distribution is created</td></tr>
-  <tr><td>ExchangeAdminUsername</td><td>domain/user</td><td>Exchangeserver admin account</td></tr>
-  <tr><td>ExchangeAdminPassword</td><td>********</td><td>Exchangeserver admin password</td></tr>
-</table>
+The following user-defined variables are used by the connector.
 
-## Manual resources
-This Delegated Form uses the following resources in order to run
+| Setting               | Description                                                                                  | Mandatory |
+| --------------------- | -------------------------------------------------------------------------------------------- | --------- |
+| ExchangeConnectionUri | The URI to the Exchange PowerShell endpoint (e.g., http://exchangeserver/powershell)         | Yes       |
+| ExchangeAdminUsername | The username of the service account with Exchange management permissions (e.g., domain\user) | Yes       |
+| ExchangeAdminPassword | The password for the Exchange admin service account (stored as secret)                       | Yes       |
 
-### Powershell data source 'Exchange-sharedmailbox-generate-table-wildcard-sendas'
-This Powershell data source runs an Exchange query to search on provided searchterm.
+## Remarks
 
-### Powershell data source 'Exchange-sharedmailbox-generate-table-manage-permissions-sendas'
-This Powershell data source runs an Exchange query to get current members with sendas rights on the shared mailbox.
+### Session Management and Cleanup
 
-### Powershell data source 'Exchange-user-generate-table-sharedmailbox-manage-memberships'
-This Powershell data source runs an Exchange query to list available mailusers.
+The connector uses PowerShell remoting sessions to connect to Exchange On-Premises. All datasources and tasks include `finally` blocks to ensure proper session cleanup, preventing session leaks and ensuring optimal performance. Sessions are automatically disconnected after each operation completes.
 
-### Delegated form task 'Exchange on-premise - Manage send as permissions shared mailbox'
-This delegated form task will update the sendas rights to the shared mailbox in Exchange.
+### Error Handling Pattern
+
+All scripts implement a consistent error handling pattern using the `$actionMessage` variable. This provides detailed context about which operation failed, making troubleshooting easier. Error messages include line numbers and full exception details for comprehensive debugging.
+
+### Optimized Command Imports
+
+Instead of importing all Exchange cmdlets, the connector imports only the specific commands needed for each operation. This reduces memory usage and improves performance, especially important when running on HelloID agents with limited resources.
+
+### Filter Capabilities
+
+The shared mailbox search datasource supports wildcard filtering on multiple attributes (Name, SamAccountName, Alias, PrimarySmtpAddress). Use `*` as the search value to retrieve all shared mailboxes. This flexibility allows users to find mailboxes using various identifiers.
+
+### Audit Logging
+
+The task uses specific audit action types (`GrantMembership` and `RevokeMembership`) instead of generic actions, providing better visibility in HelloID audit logs and making it easier to track permission changes over time.
+
+## Development resources
+
+### Datasources
+
+The following PowerShell datasources are used by this connector:
+
+| Datasource Name                                            | Description                                                                                                                                                                 |
+| ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Exchange-On-Premises-Get-Sharedmailbox-Wildcard-Name-Alias | Searches for shared mailboxes based on wildcard filter. Supports filtering by Name, SamAccountName, Alias, or PrimarySmtpAddress. Use `*` to retrieve all shared mailboxes. |
+| Exchange-On-Premises-Get-Current-Send-As-Users             | Retrieves all users who currently have Send As permissions on the selected shared mailbox. Filters out system accounts (NT AUTHORITY).                                      |
+| Exchange-On-Premises-Get-All-Users                         | Retrieves all user mailboxes that can be granted Send As permissions. Returns all UserMailbox recipients sorted by DisplayName.                                             |
+
+### Tasks
+
+| Task Name                                                        | Description                                                                                                                                                             |
+| ---------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Exchange On-Premises - Sharedmailbox - Manage sendas permissions | Main task that grants or revokes Send As permissions on a shared mailbox. Processes both additions and removals in a single execution with comprehensive audit logging. |
+
+### API endpoints
+
+The following Exchange PowerShell cmdlets are used by the connector:
+
+| Cmdlet              | Description                                                           |
+| ------------------- | --------------------------------------------------------------------- |
+| Get-Mailbox         | Retrieves mailbox information for shared mailboxes and user mailboxes |
+| Add-ADPermission    | Grants Send As permissions to users on shared mailboxes               |
+| Remove-ADPermission | Revokes Send As permissions from users on shared mailboxes            |
+| Get-ADPermission    | Retrieves current permissions on a mailbox                            |
+| Get-Recipient       | Retrieves recipient information for permission holders                |
+
+### API documentation
+
+- [Exchange PowerShell Documentation](https://learn.microsoft.com/en-us/powershell/exchange/)
+- [Connect to Exchange Servers using Remote PowerShell](https://learn.microsoft.com/en-us/powershell/exchange/connect-to-exchange-servers-using-remote-powershell)
+- [Get-Mailbox Cmdlet](https://learn.microsoft.com/en-us/powershell/module/exchange/get-mailbox)
+- [Add-ADPermission Cmdlet](https://learn.microsoft.com/en-us/powershell/module/exchange/add-adpermission)
+- [Remove-ADPermission Cmdlet](https://learn.microsoft.com/en-us/powershell/module/exchange/remove-adpermission)
 
 ## Getting help
-_If you need help, feel free to ask questions on our [forum](https://forum.helloid.com/forum/helloid-connectors/service-automation/572-helloid-sa-exchange-on-premises-manage-members-with-send-as-to-shared-mailbox)_
 
-## HelloID Docs
+> :bulb: **Tip:**  
+> _For more information on Delegated Forms, please refer to our [documentation](https://docs.helloid.com/en/service-automation/delegated-forms.html) pages_.
+
+## HelloID docs
+
 The official HelloID documentation can be found at: https://docs.helloid.com/
